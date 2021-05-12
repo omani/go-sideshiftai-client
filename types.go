@@ -50,7 +50,7 @@ type RequestFixedOrders struct {
 	Type          string `json:"type"`
 	QuoteId       string `json:"quoteId"`
 	SettleAddress string `json:"settleAddress"`
-	AffiliateId   string `json:"affiliateId"`
+	AffiliateId   string `json:"affiliateId,omitempty"`
 	RefundAddress string `json:"refundAddress"`
 }
 
@@ -60,7 +60,7 @@ type RequestVariableOrders struct {
 	DepositMethodId string `json:"depositMethodId"`
 	SettleMethodId  string `json:"settleMethodId"`
 	SettleAddress   string `json:"settleAddress"`
-	AffiliateId     string `json:"affiliateId"`
+	AffiliateId     string `json:"affiliateId,omitempty"`
 	RefundAddress   string `json:"refundAddress"`
 }
 
@@ -86,7 +86,7 @@ type ResponseOrders struct {
 
 // ResponsePairs is the response from RequestPairs()
 type ResponsePairs struct {
-	Rate int    `json:"rate"`
+	Rate string `json:"rate"`
 	Min  string `json:"min"`
 	Max  string `json:"max"`
 }

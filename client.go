@@ -14,15 +14,15 @@ import (
 // Client is a sideshift.ai API client
 type Client interface {
 	// 	Fetch facts, such as assets (currencies), deposit and settle methods
-	GetFetchFacts()
+	GetFetchFacts() (interface{}, error)
 	// Fetch current rate/price, min deposit, and max deposit for a shift.
-	GetFetchPairs()
+	GetFetchPairs(string) (*ResponsePairs, error)
 	// Retrieves the permissions of the caller, indicating what actions they're allowed to take on SideShift.ai
-	GetPermissions()
+	GetPermissions() (interface{}, error)
 	// For fixed rate orders, a quote should be requested first.
 	// A quote expires after 15 minutes.
 	// After the quote request, a fixed rate order should be requested using the id returned by the /quotes endpoint
-	PostRequestQuotes()
+	PostRequestQuotes(*RequestQuotes) (*ResponseQuotes, error)
 	// After requesting a quote, use the quoteId to create a fixed rate order with the quote.
 	// For fixed rate orders, a deposit of exactly the amount of depositAmount must be made before the expiresAt timestamp, otherwise the deposit will be refunded.
 	// For XLM deposits, the API response will contain an additional memo field under depositAddress. The XLM transaction must contain this memo, otherwise the deposit might be lost.
@@ -30,25 +30,20 @@ type Client interface {
 	// refundAddress is optional, if not defined, user will be prompted to enter a refund address manually on the SideShift.ai order page if the order needs to be refunded
 	// orderId field is deprecated, use id instead.
 	// To create an order for XAI balance as settle method, the request should include the sessionSecret, settleMethod should be saibal and the settleAddress should be the affiliateId.
-	PostCreateFixedOrders()
+	PostCreateFixedOrders(*RequestFixedOrders) (*ResponseOrders, error)
 	// For variable rate orders, the settlement rate is determined when the user's payment is received.
 	// For XLM deposits, the API response will contain an additional memo field under depositAddress. The XLM transaction must contain this memo, otherwise the deposit might be lost.
 	// affiliateId is optional, but should be defined to get a commission after the shift is complete. It can be obtained here. Commissions are paid in SideShift.ai native XAI token, read more about XAI here.
 	// refundAddress is optional, if not defined, user will be prompted to enter a refund address manually on the SideShift.ai order page if the order needs to be refunded
 	// orderId field is deprecated, use id instead.
 	// To create an order for XAI balance as settle method, the request should include the sessionSecret, settleMethod should be saibal and the settleAddress should be the affiliateId.
-	PostCreateVariableOrders()
+	PostCreateVariableOrders(*RequestVariableOrders) (*ResponseOrders, error)
 	// Fetch the order data, including the deposits. orderId field is deprecated, use id instead.
-	GetFetchOrders()
+	GetFetchOrders(string) (*ResponseOrders, error)
 }
 
-type client struct {
-	httpcl *http.Client
-	config *Config
-}
-
-// New returns a new sideshift.ai API client
-func New(config *Config) *client {
+// New returns a new sideshiftai client.
+func New(config Config) Client {
 	cfg := &Config{
 		APIBaseAddress: APIBaseAddress,
 		APIVersion:     APIVersion,
@@ -59,7 +54,16 @@ func New(config *Config) *client {
 	if len(config.APIVersion) == 0 {
 		cfg.APIVersion = APIVersion
 	}
-	return &client{config: cfg}
+	cl := &client{
+		config: cfg,
+	}
+
+	return cl
+}
+
+type client struct {
+	httpcl *http.Client
+	config *Config
 }
 
 // Helper function
@@ -120,14 +124,13 @@ func (c *client) GetFetchFacts() (interface{}, error) {
 	return out, nil
 }
 
-func (c *client) GetFetchPairs(pair string) (interface{}, error) {
-	var out Pair
-	err := c.do("GET", fmt.Sprintf("pairs/%s", pair), nil, &out)
+func (c *client) GetFetchPairs(pair string) (resp *ResponsePairs, err error) {
+	err = c.do("GET", fmt.Sprintf("pairs/%s", pair), nil, &resp)
 	if err != nil {
 		return nil, err
 	}
 
-	return out, nil
+	return
 }
 
 func (c *client) GetPermissions() (interface{}, error) {
